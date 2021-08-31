@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { ToolChainService } from "tool-chain";
+import { ToolDbService } from "tool-db";
 import dotenv from "dotenv";
 
 import {
@@ -92,7 +92,7 @@ export default async function init() {
   client.replicate(bee.feed);
 
   // Setup ToolChain
-  const chain = new ToolChainService(true);
+  const chain = new ToolDbService(true);
   if (global.crypto === undefined) {
     throw new Error(
       "webCrypto is not set up! Make sure you are on Node v15 or newer."

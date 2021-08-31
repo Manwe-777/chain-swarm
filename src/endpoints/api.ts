@@ -1,6 +1,6 @@
 import { Express, Request } from "express";
 
-import { ToolChainService } from "tool-chain";
+import { ToolDbService } from "tool-db";
 import { BASE_URI } from "../constants";
 import defaultResponse from "../responses/defaultResponse";
 import statusResponse from "../responses/statusResponse";
@@ -9,7 +9,7 @@ const putPath = "api/put";
 const getPath = "api/get";
 const nodesPath = "api/nodes";
 
-function setup(app: Express, chain: ToolChainService): void {
+function setup(app: Express, chain: ToolDbService): void {
   app.post(BASE_URI + putPath, (req, res) => {
     console.log("body", req.body);
     chain

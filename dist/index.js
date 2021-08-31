@@ -42,7 +42,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var body_parser_1 = __importDefault(require("body-parser"));
 var cors_1 = __importDefault(require("cors"));
-var tool_chain_1 = require("tool-chain");
+var tool_db_1 = require("tool-db");
 var dotenv_1 = __importDefault(require("dotenv"));
 var hyperspace_1 = require("hyperspace");
 var hyperbee_1 = __importDefault(require("hyperbee"));
@@ -154,7 +154,7 @@ function init() {
                 case 3:
                     _f.apply(_e, [_g.sent()]);
                     client.replicate(bee.feed);
-                    chain = new tool_chain_1.ToolChainService(true);
+                    chain = new tool_db_1.ToolDbService(true);
                     if (global.crypto === undefined) {
                         throw new Error("webCrypto is not set up! Make sure you are on Node v15 or newer.");
                     }
