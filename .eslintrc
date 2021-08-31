@@ -1,0 +1,47 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended",
+    "prettier/@typescript-eslint"
+  ],
+  "parserOptions": {
+    "project": "./tsconfig.json",
+    "sourceType": "module",
+    "ecmaVersion": 9
+  },
+  "env": {
+    "es6": true,
+    "node": true,
+    "browser": false
+  },
+  "rules": {
+    "allowEmptyCatch": 0,
+    "no-cond-assign": 0,
+    "no-console": "off",
+    "no-redeclare": "warn",
+    "no-duplicate-imports": "warn",
+    "no-undef": "error",
+    "no-global-assign": "warn",
+    "no-empty": "warn",
+    "complexity": ["warn", 40],
+    "max-statements": ["warn", 100],
+    "prettier/prettier": [
+      "warn",
+      {
+        "endOfLine": "auto"
+      }
+    ],
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {"varsIgnorePattern": "^_", "argsIgnorePattern": "^_"}
+    ],
+    "@typescript-eslint/interface-name-prefix": 0,
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-empty-function": [
+      "error",
+      {"allow": ["arrowFunctions"]}
+    ],
+    "require-atomic-updates": "warn"
+  }
+}
