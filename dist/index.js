@@ -149,6 +149,9 @@ function init() {
                         keyEncoding: "utf-8",
                         valueEncoding: "json", // same options as above
                     });
+                    bee.feed.on("peer-add", function (d) {
+                        console.log("Connected to", d.remotePublicKey.toString("hex"));
+                    });
                     _f = (_e = console).log;
                     return [4 /*yield*/, bee.status];
                 case 3:
@@ -178,7 +181,7 @@ function init() {
                         res.json({ ok: true, msg: "You found the root!" });
                     });
                     console.log("Creating endpoints:");
-                    api_1.default.setup(app, chain);
+                    api_1.default.setup(app, chain, bee);
                     server = app.listen(constants_1.PORT, function () {
                         console.log("Server listening on port " + constants_1.PORT + ".");
                     });

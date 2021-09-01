@@ -9,7 +9,7 @@ const putPath = "api/put";
 const getPath = "api/get";
 const nodesPath = "api/nodes";
 
-function setup(app: Express, chain: ToolDbService): void {
+function setup(app: Express, chain: ToolDbService, bee: any): void {
   app.post(BASE_URI + putPath, (req, res) => {
     console.log("body", req.body);
     chain
@@ -33,7 +33,8 @@ function setup(app: Express, chain: ToolDbService): void {
   );
 
   app.get(BASE_URI + nodesPath, (req, res) => {
-    res.json({ message: "Not implemented YET" });
+    const peers = bee.feed.peers.map((d: any) => d.remoteAddress);
+    res.json({ peers });
   });
   // Some output
   [putPath, getPath, nodesPath].map((p) => console.log(`- ${BASE_URI}${p}`));

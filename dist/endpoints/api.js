@@ -9,7 +9,7 @@ var statusResponse_1 = __importDefault(require("../responses/statusResponse"));
 var putPath = "api/put";
 var getPath = "api/get";
 var nodesPath = "api/nodes";
-function setup(app, chain) {
+function setup(app, chain, bee) {
     app.post(constants_1.BASE_URI + putPath, function (req, res) {
         console.log("body", req.body);
         chain
@@ -28,7 +28,8 @@ function setup(app, chain) {
         });
     });
     app.get(constants_1.BASE_URI + nodesPath, function (req, res) {
-        res.json({ message: "Not implemented YET" });
+        var peers = bee.feed.peers.map(function (d) { return d.remoteAddress; });
+        res.json({ peers: peers });
     });
     // Some output
     [putPath, getPath, nodesPath].map(function (p) { return console.log("- " + constants_1.BASE_URI + p); });

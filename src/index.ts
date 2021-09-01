@@ -87,6 +87,10 @@ export default async function init() {
     valueEncoding: "json", // same options as above
   });
 
+  bee.feed.on("peer-add", (d: any) => {
+    console.log("Connected to", d.remotePublicKey.toString("hex"));
+  });
+
   console.log(await bee.status);
 
   client.replicate(bee.feed);
@@ -115,7 +119,7 @@ export default async function init() {
   });
 
   console.log("Creating endpoints:");
-  api.setup(app, chain);
+  api.setup(app, chain, bee);
 
   const server = app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}.`);
