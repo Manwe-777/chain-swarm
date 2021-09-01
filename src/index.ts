@@ -1,8 +1,9 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { ToolDbService } from "tool-db";
+import { sha256, ToolDbService } from "tool-db";
 import dotenv from "dotenv";
+import dht from "@hyperswarm/dht";
 
 import {
   Client as HyperspaceClient,
@@ -75,6 +76,17 @@ async function setupHyperspace() {
 }
 
 export default async function init() {
+  // Announce this server
+  const node = dht({
+    ephemeral: true,
+  });
+  const keyHash = sha256(process.env.KEY || "");
+  const topicKey = Buffer.from(keyHash, "hex");
+  node.announce(topicKey, { port: 4001 }, function (err: any) {
+    if (err) throw err;
+    console.log("Announced this server at " + keyHash);
+  });
+
   // Setup Hyperswarm with Hypercore
   const { client, cleanup } = await setupHyperspace();
   console.log("status", await client.status());

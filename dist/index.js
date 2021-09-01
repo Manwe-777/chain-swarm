@@ -44,6 +44,7 @@ var body_parser_1 = __importDefault(require("body-parser"));
 var cors_1 = __importDefault(require("cors"));
 var tool_db_1 = require("tool-db");
 var dotenv_1 = __importDefault(require("dotenv"));
+var dht_1 = __importDefault(require("@hyperswarm/dht"));
 var hyperspace_1 = require("hyperspace");
 var hyperbee_1 = __importDefault(require("hyperbee"));
 var constants_1 = require("./constants");
@@ -131,11 +132,22 @@ function init() {
             server.close();
             process.exit();
         }
-        var _a, client, cleanup, _b, _c, _d, bufferKey, core, bee, _e, _f, chain, server;
+        var node, keyHash, topicKey, _a, client, cleanup, _b, _c, _d, bufferKey, core, bee, _e, _f, chain, server;
         var _this = this;
         return __generator(this, function (_g) {
             switch (_g.label) {
-                case 0: return [4 /*yield*/, setupHyperspace()];
+                case 0:
+                    node = (0, dht_1.default)({
+                        ephemeral: true,
+                    });
+                    keyHash = (0, tool_db_1.sha256)(process.env.KEY || "");
+                    topicKey = Buffer.from(keyHash, "hex");
+                    node.announce(topicKey, { port: 4001 }, function (err) {
+                        if (err)
+                            throw err;
+                        console.log("Announced this server at " + keyHash);
+                    });
+                    return [4 /*yield*/, setupHyperspace()];
                 case 1:
                     _a = _g.sent(), client = _a.client, cleanup = _a.cleanup;
                     _c = (_b = console).log;
