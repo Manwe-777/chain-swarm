@@ -21,10 +21,12 @@ function setup(app, chain) {
         });
     });
     app.get(constants_1.BASE_URI + getPath, function (req, res) {
+        console.log("API get = " + req.query.key);
         try {
             chain
-                .dbRead(req.query.key)
+                .dbRead(decodeURIComponent(req.query.key))
                 .then(function (data) {
+                console.log(req.query.key, data);
                 if (!data) {
                     res.json(null);
                 }

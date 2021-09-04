@@ -44,7 +44,6 @@ var body_parser_1 = __importDefault(require("body-parser"));
 var cors_1 = __importDefault(require("cors"));
 var tool_db_1 = require("tool-db");
 var dotenv_1 = __importDefault(require("dotenv"));
-var dht_1 = __importDefault(require("@hyperswarm/dht"));
 var hyperswarm_1 = __importDefault(require("hyperswarm"));
 var ndjson_1 = __importDefault(require("ndjson"));
 var fast_json_parse_1 = __importDefault(require("fast-json-parse"));
@@ -96,9 +95,10 @@ function dbLookup(db, topicKey, databaseId) {
                     outgoing.pipe(socket);
                     socket.databaseId = undefined;
                     incoming.on("data", function (data) {
+                        console.log(data);
                         if (data.type === "handshake") {
                             socket.databaseId = data.key;
-                            console.log("HANDSHAKE", data.key);
+                            console.log("Connected to > ", data.key);
                             idToSockets[data.key] = {
                                 in: incoming,
                                 out: outgoing,
@@ -121,13 +121,15 @@ function dbLookup(db, topicKey, databaseId) {
                             }
                         }
                         if (data.type === "get") {
-                            db.get(data.key).then(function (d) {
+                            db.get(data.key)
+                                .then(function (d) {
                                 outgoing.write({
                                     type: "put",
                                     key: data.key,
                                     value: d,
                                 });
-                            });
+                            })
+                                .catch(function (e) { });
                         }
                     });
                     if (info.client) {
@@ -150,26 +152,18 @@ function dbLookup(db, topicKey, databaseId) {
     });
 }
 function relayToEveryone(msg) {
+    console.log("Relay to " + Object.values(idToSockets).length + " peers.");
+    console.log(msg);
     Object.values(idToSockets).forEach(function (obj) {
         obj.out.write(msg);
     });
 }
 function init() {
     return __awaiter(this, void 0, void 0, function () {
-        var node, keyHash, topicKey, levelDb, databaseId, e_1, topicDb, chain, server;
+        var levelDb, databaseId, e_1, topicDb, chain, server;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    node = dht_1.default({
-                        ephemeral: true,
-                    });
-                    keyHash = tool_db_1.sha256(process.env.SWARM_KEY || "");
-                    topicKey = Buffer.from(keyHash, "hex");
-                    node.announce(topicKey, { port: 4001 }, function (err) {
-                        if (err)
-                            throw err;
-                        console.log("Announced this server at " + keyHash);
-                    });
                     levelDb = level_1.default(process.argv[3] || "level", { encoding: "utf8" });
                     databaseId = "";
                     _a.label = 1;
@@ -185,6 +179,7 @@ function init() {
                     levelDb.put("_databaseId", databaseId);
                     return [3 /*break*/, 4];
                 case 4:
+                    console.log("Database ID: " + databaseId);
                     topicDb = Buffer.from(tool_db_1.sha256(process.env.DB_KEY || ""), "hex");
                     dbLookup(levelDb, topicDb, databaseId);
                     chain = new tool_db_1.ToolDbService(true);
@@ -192,39 +187,39 @@ function init() {
                         throw new Error("webCrypto is not set up! Make sure you are on Node v15 or newer.");
                     }
                     chain.dbRead = function (key) {
-                        // console.log("dbRead", key);
+                        console.log("dbRead", key);
                         return new Promise(function (resolve, reject) {
                             levelDb
                                 .get(key)
                                 .then(function (d) {
-                                // console.log("dbRead ok");
+                                console.log("dbRead ok", d);
                                 resolve(fast_json_parse_1.default(d).value);
                             })
                                 .catch(function (e) {
-                                // console.log("dbRead err, try socket");
+                                console.log("dbRead err, try socket");
                                 // Try to get from other Dbs connected to us
                                 relayToEveryone({
                                     type: "get",
                                     key: key,
                                 });
                                 setTimeout(function () {
-                                    // console.log("Timeout resolve");
+                                    console.log("Timeout resolve");
                                     levelDb
                                         .get(key)
                                         .then(function (d) {
-                                        // console.log("dbRead timeout", d);
+                                        console.log("dbRead timeout", d);
                                         resolve(fast_json_parse_1.default(d).value);
                                     })
                                         .catch(function (e) {
-                                        // console.log("dbRead timeout err");
+                                        console.log("dbRead timeout err");
                                         resolve(null);
                                     });
-                                }, 200);
+                                }, 1000);
                             });
                         });
                     };
                     chain.dbWrite = function (key, msg) {
-                        var m = ndjson_1.default.stringify(msg);
+                        var m = JSON.stringify(msg);
                         return levelDb.put(key, m);
                     };
                     // Setup Express

@@ -75,9 +75,10 @@ async function dbLookup(
     socket.databaseId = undefined;
 
     incoming.on("data", (data: PipeMessage) => {
+      console.log(data);
       if (data.type === "handshake") {
         socket.databaseId = data.key;
-        console.log("HANDSHAKE", data.key);
+        console.log("Connected to > ", data.key);
         idToSockets[data.key] = {
           in: incoming,
           out: outgoing,
@@ -102,13 +103,15 @@ async function dbLookup(
       }
 
       if (data.type === "get") {
-        db.get(data.key).then((d) => {
-          outgoing.write({
-            type: "put",
-            key: data.key,
-            value: d,
-          } as PipePut);
-        });
+        db.get(data.key)
+          .then((d) => {
+            outgoing.write({
+              type: "put",
+              key: data.key,
+              value: d,
+            } as PipePut);
+          })
+          .catch((e) => {});
       }
     });
 
@@ -129,6 +132,8 @@ async function dbLookup(
 }
 
 function relayToEveryone(msg: PipeMessage) {
+  console.log("Relay to " + Object.values(idToSockets).length + " peers.");
+  console.log(msg);
   Object.values(idToSockets).forEach((obj) => {
     obj.out.write(msg);
   });
@@ -136,15 +141,15 @@ function relayToEveryone(msg: PipeMessage) {
 
 export default async function init() {
   // Announce this server
-  const node = dht({
-    ephemeral: true,
-  });
-  const keyHash = sha256(process.env.SWARM_KEY || "");
-  const topicKey = Buffer.from(keyHash, "hex");
-  node.announce(topicKey, { port: 4001 }, function (err: any) {
-    if (err) throw err;
-    console.log("Announced this server at " + keyHash);
-  });
+  // const node = dht({
+  //   ephemeral: true,
+  // });
+  // const keyHash = sha256(process.env.SWARM_KEY || "");
+  // const topicKey = Buffer.from(keyHash, "hex");
+  // node.announce(topicKey, { port: 4001 }, function (err: any) {
+  //   if (err) throw err;
+  //   console.log("Announced this server at " + keyHash);
+  // });
 
   // Set up database
   const levelDb = level(process.argv[3] || "level", { encoding: "utf8" });
@@ -156,6 +161,8 @@ export default async function init() {
     databaseId = sha256(`${new Date().getTime()}`);
     levelDb.put("_databaseId", databaseId);
   }
+
+  console.log("Database ID: " + databaseId);
 
   // Set up swarm
   const topicDb = Buffer.from(sha256(process.env.DB_KEY || ""), "hex");
@@ -170,40 +177,40 @@ export default async function init() {
   }
 
   chain.dbRead = (key: string) => {
-    // console.log("dbRead", key);
+    console.log("dbRead", key);
     return new Promise((resolve, reject) => {
       levelDb
         .get(key)
         .then((d) => {
-          // console.log("dbRead ok");
+          console.log("dbRead ok", d);
           resolve(parse(d).value);
         })
         .catch((e) => {
-          // console.log("dbRead err, try socket");
+          console.log("dbRead err, try socket");
           // Try to get from other Dbs connected to us
           relayToEveryone({
             type: "get",
             key,
           });
           setTimeout(() => {
-            // console.log("Timeout resolve");
+            console.log("Timeout resolve");
             levelDb
               .get(key)
               .then((d) => {
-                // console.log("dbRead timeout", d);
+                console.log("dbRead timeout", d);
                 resolve(parse(d).value);
               })
               .catch((e) => {
-                // console.log("dbRead timeout err");
+                console.log("dbRead timeout err");
                 resolve(null as any);
               });
-          }, 200);
+          }, 1000);
         });
     });
   };
 
   chain.dbWrite = (key, msg) => {
-    const m = ndjson.stringify(msg);
+    const m = JSON.stringify(msg);
     return levelDb.put(key, m);
   };
 

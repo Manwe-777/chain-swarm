@@ -23,10 +23,12 @@ function setup(app: Express, chain: ToolDbService): void {
   app.get(
     BASE_URI + getPath,
     (req: Request<any, any, any, { key: string }>, res) => {
+      console.log("API get = " + req.query.key);
       try {
         chain
-          .dbRead<any>(req.query.key)
+          .dbRead<any>(decodeURIComponent(req.query.key))
           .then((data: any) => {
+            console.log(req.query.key, data);
             if (!data) {
               res.json(null);
             } else {
