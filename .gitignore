@@ -1,1 +1,5 @@
 node_modules
+data
+dist
+level
+test
