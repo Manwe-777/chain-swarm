@@ -8,3 +8,4 @@ declare module "multi-hyperbee";
 declare module "@hyperswarm/replicator";
 declare module "pump";
 declare module "fast-json-parse";
+declare module "gun";

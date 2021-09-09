@@ -44,16 +44,15 @@ var body_parser_1 = __importDefault(require("body-parser"));
 var cors_1 = __importDefault(require("cors"));
 var tool_db_1 = require("tool-db");
 var dotenv_1 = __importDefault(require("dotenv"));
-var hyperswarm_1 = __importDefault(require("hyperswarm"));
-var ndjson_1 = __importDefault(require("ndjson"));
-var fast_json_parse_1 = __importDefault(require("fast-json-parse"));
-var level_1 = __importDefault(require("level"));
+var dht_1 = __importDefault(require("@hyperswarm/dht"));
 var constants_1 = require("./constants");
 var api_1 = __importDefault(require("./endpoints/api"));
+var gun_1 = __importDefault(require("gun"));
 dotenv_1.default.config();
 var app = express_1.default();
 app.use(body_parser_1.default.urlencoded({ extended: true }));
 app.use(body_parser_1.default.json());
+app.use(gun_1.default.serve);
 var allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3006",
@@ -75,164 +74,32 @@ app.use(cors_1.default({
         return callback(null, true);
     },
 }));
-var idToSockets = {};
-function dbLookup(db, topicKey, databaseId) {
-    return __awaiter(this, void 0, void 0, function () {
-        var swarm;
-        var _this = this;
-        return __generator(this, function (_a) {
-            swarm = hyperswarm_1.default();
-            swarm.join(topicKey, {
-                lookup: true,
-                announce: true,
-            });
-            swarm.on("connection", function (socket, info) { return __awaiter(_this, void 0, void 0, function () {
-                var incoming, outgoing;
-                return __generator(this, function (_a) {
-                    incoming = ndjson_1.default.parse();
-                    outgoing = ndjson_1.default.stringify();
-                    socket.pipe(incoming);
-                    outgoing.pipe(socket);
-                    socket.databaseId = undefined;
-                    incoming.on("data", function (data) {
-                        console.log(data);
-                        if (data.type === "handshake") {
-                            socket.databaseId = data.key;
-                            console.log("Connected to > ", data.key);
-                            idToSockets[data.key] = {
-                                in: incoming,
-                                out: outgoing,
-                            };
-                        }
-                        if (data.type === "put") {
-                            var parsed_1 = fast_json_parse_1.default(data.value);
-                            if (!parsed_1.err) {
-                                tool_db_1.verifyMessage(parsed_1.value).then(function () {
-                                    db.get(data.key)
-                                        .then(function (d) {
-                                        var oldParsed = fast_json_parse_1.default(d);
-                                        if (oldParsed.value.timestamp < parsed_1.value.timestamp) {
-                                            db.put(data.key, data.value);
-                                        }
-                                    })
-                                        .catch(function (e) { });
-                                    db.put(data.key, data.value);
-                                });
-                            }
-                        }
-                        if (data.type === "get") {
-                            db.get(data.key)
-                                .then(function (d) {
-                                outgoing.write({
-                                    type: "put",
-                                    key: data.key,
-                                    value: d,
-                                });
-                            })
-                                .catch(function (e) { });
-                        }
-                    });
-                    if (info.client) {
-                        outgoing.write({
-                            type: "handshake",
-                            key: databaseId,
-                        });
-                    }
-                    return [2 /*return*/];
-                });
-            }); });
-            swarm.on("disconnection", function (socket, info) {
-                console.log(socket.databaseId + " disconnected.");
-                if (socket.databaseId) {
-                    delete idToSockets[databaseId];
-                }
-            });
-            return [2 /*return*/];
-        });
-    });
-}
-function relayToEveryone(msg) {
-    console.log("Relay to " + Object.values(idToSockets).length + " peers.");
-    console.log(msg);
-    Object.values(idToSockets).forEach(function (obj) {
-        obj.out.write(msg);
-    });
-}
 function init() {
     return __awaiter(this, void 0, void 0, function () {
-        var levelDb, databaseId, e_1, topicDb, chain, server;
+        var node, keyHash, topicKey, server, gun;
         return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    levelDb = level_1.default(process.argv[3] || "level", { encoding: "utf8" });
-                    databaseId = "";
-                    _a.label = 1;
-                case 1:
-                    _a.trys.push([1, 3, , 4]);
-                    return [4 /*yield*/, levelDb.get("_databaseId")];
-                case 2:
-                    databaseId = _a.sent();
-                    return [3 /*break*/, 4];
-                case 3:
-                    e_1 = _a.sent();
-                    databaseId = tool_db_1.sha256("" + new Date().getTime());
-                    levelDb.put("_databaseId", databaseId);
-                    return [3 /*break*/, 4];
-                case 4:
-                    console.log("Database ID: " + databaseId);
-                    topicDb = Buffer.from(tool_db_1.sha256(process.env.DB_KEY || ""), "hex");
-                    dbLookup(levelDb, topicDb, databaseId);
-                    chain = new tool_db_1.ToolDbService(true);
-                    if (global.crypto === undefined) {
-                        throw new Error("webCrypto is not set up! Make sure you are on Node v15 or newer.");
-                    }
-                    chain.dbRead = function (key) {
-                        console.log("dbRead", key);
-                        return new Promise(function (resolve, reject) {
-                            levelDb
-                                .get(key)
-                                .then(function (d) {
-                                console.log("dbRead ok", d);
-                                resolve(fast_json_parse_1.default(d).value);
-                            })
-                                .catch(function (e) {
-                                console.log("dbRead err, try socket");
-                                // Try to get from other Dbs connected to us
-                                relayToEveryone({
-                                    type: "get",
-                                    key: key,
-                                });
-                                setTimeout(function () {
-                                    console.log("Timeout resolve");
-                                    levelDb
-                                        .get(key)
-                                        .then(function (d) {
-                                        console.log("dbRead timeout", d);
-                                        resolve(fast_json_parse_1.default(d).value);
-                                    })
-                                        .catch(function (e) {
-                                        console.log("dbRead timeout err");
-                                        resolve(null);
-                                    });
-                                }, 1000);
-                            });
-                        });
-                    };
-                    chain.dbWrite = function (key, msg) {
-                        var m = JSON.stringify(msg);
-                        return levelDb.put(key, m);
-                    };
-                    // Setup Express
-                    app.get(constants_1.BASE_URI, function (_req, res) {
-                        res.json({ ok: true, msg: "You found the root!" });
-                    });
-                    console.log("Creating endpoints:");
-                    api_1.default.setup(app, chain);
-                    server = app.listen(constants_1.PORT, function () {
-                        console.log("Server listening on port " + constants_1.PORT + ".");
-                    });
-                    return [2 /*return*/];
-            }
+            node = dht_1.default({
+                ephemeral: true,
+            });
+            keyHash = tool_db_1.sha256(process.env.SWARM_KEY || "");
+            topicKey = Buffer.from(keyHash, "hex");
+            node.announce(topicKey, { port: 4000 }, function (err) {
+                if (err)
+                    throw err;
+                console.log("Announced this server at " + keyHash);
+            });
+            // Setup Express
+            app.get(constants_1.BASE_URI, function (_req, res) {
+                res.json({ ok: true, msg: "You found the root!" });
+            });
+            console.log("Creating endpoints:");
+            api_1.default.setup(app);
+            server = app.listen(constants_1.PORT, function () {
+                console.log("Relay peer started on port " + constants_1.PORT + "/gun");
+            });
+            tool_db_1.customGun(gun_1.default);
+            gun = gun_1.default({ web: server, file: "data" });
+            return [2 /*return*/];
         });
     });
 }

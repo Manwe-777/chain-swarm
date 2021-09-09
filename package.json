@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "watch": "npm-watch",
-    "start": "nodemon dist/index.js 4000",
+    "start": "nodemon dist/index.js 8765",
     "start:test": "nodemon dist/index.js",
     "test": "eslint src/ && tsc",
     "build": "tsc",
@@ -43,11 +43,12 @@
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "fast-json-parse": "^1.0.3",
+    "gun": "^0.2020.1234",
     "hyperswarm": "^2.15.3",
     "level": "^6.0.1",
     "ndjson": "^2.0.0",
     "pump": "^3.0.0",
-    "tool-db": "^1.0.7"
+    "tool-db": "^1.0.10"
   },
   "watch": {
     "build": {
