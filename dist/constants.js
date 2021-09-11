@@ -1,5 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PORT = process.argv[2] || 8765;
-exports.BASE_URI = "/";
+exports.PORT = void 0;
+exports.PORT = process.argv[2] ? parseInt(process.argv[2]) : 8765;
 //# sourceMappingURL=constants.js.map

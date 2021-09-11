@@ -1,34 +1,23 @@
-const dht = require("@hyperswarm/dht");
+const DHT = require("@hyperswarm/dht");
+const pump = require("pump");
+const net = require("net");
 
-async function main() {
-  const node = dht({
-    ephemeral: true,
-  });
-
-  const hyperPeers = [];
-
-  const bufferKey = Buffer.from(
-    "23a8aed15e661c3f3d4844ec122a47fcbaf8136bfc9e338d7f8608018d18e2d4",
+function main() {
+  const port = 1234;
+  const publicKey = Buffer.from(
+    "e679064098b19fc00b0f128799c73a5d633573e70e111d862d6e91085b45613a",
     "hex"
   );
 
-  node
-    .lookup(bufferKey)
-    .on("data", (data) => {
-      data.peers.forEach((p) => {
-        if (!hyperPeers.includes(p.host)) {
-          hyperPeers.push(p.host);
-        }
-      });
-    })
-    .on("end", () => {
-      console.log(hyperPeers);
-      // unannounce it and shutdown
-      node.unannounce(bufferKey, { port: 4001 }, function () {
-        node.destroy();
-        process.exit(1);
-      });
-    });
+  const node = new DHT();
+
+  const server = net.createServer(function (servsock) {
+    const socket = node.connect(publicKey);
+    pump(servsock, socket, servsock);
+    console.log("Opened connection at port " + port);
+  });
+
+  server.listen(port, 'localhost');
 }
 
 main();

@@ -1,2 +1,1 @@
-export const PORT = process.argv[2] || 8765;
-export const BASE_URI = "/";
+export const PORT = process.argv[2] ? parseInt(process.argv[2]) : 8765;
