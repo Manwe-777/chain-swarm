@@ -1,14 +1,9 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { customGun, sha256 } from "tool-db";
+import { customGun } from "tool-db";
 import dotenv from "dotenv";
-import DHT from "@hyperswarm/dht";
-import net from "net";
-import pump from "pump";
-
-import crypto from "crypto";
-import swarm from "@geut/discovery-swarm-webrtc";
+import swarm from "discovery-swarm";
 
 import { PORT } from "./constants";
 import Gun from "gun";
@@ -45,77 +40,31 @@ app.use(
   })
 );
 
+let peers: Record<string, number> = {};
+
 export default async function swarmStart() {
-  /**
-   * DHT Hole punching
-   * requires clients to be in Node
-   * Bridges connections to Gun
-   */
-  // const keyHash = sha256(process.env.SWARM_KEY || "");
-  // const topicKey = Buffer.from(keyHash, "hex");
-  // const keyPair = DHT.keyPair(topicKey);
+  var sw = swarm();
 
-  // const node = new DHT();
+  sw.listen(4000);
+  sw.join("mtgatool-db-swarm"); // can be any id/name/hash
 
-  // const nodeServer = node.createServer();
-  // nodeServer.on("connection", function (socket: any) {
-  //   console.log("Remote key", socket.remotePublicKey.toString("hex"));
-  //   let local = net.connect(PORT, "localhost");
-  //   pump(socket, local, socket);
-  // });
-
-  // await nodeServer.listen(keyPair);
-
-  // const strKey = keyPair.publicKey.toString("hex");
-  // console.log("Topic: ", nodeServer.target.toString("hex"));
-  // console.log("Public key: " + strKey);
-  // console.log("DHT server OK:");
-  // console.log(nodeServer.address());
-
-  const sw = swarm({
-    bootstrap: ["wss://geut-webrtc-signal-v3.herokuapp.com"],
+  sw.on("connection", function (connection: any) {
+    peers[connection.remoteAddress] = new Date().getTime();
+    console.log("found + connected to peer", connection.remoteAddress);
   });
 
-  const topic = crypto
-    .createHash("sha256")
-    .update("mtgatool-webrtc-test")
-    .digest();
-
-  console.log("ID > ", sw.id.toString("hex"));
-  console.log(
-    "topic",
-    crypto.createHash("sha256").update("mtgatool-webrtc-test").digest("hex")
-  );
-
-  sw.join(topic);
-
-  sw.on("connection", (peer: any, info: any) => {
-    console.log("connection", peer, info);
+  sw.on("peer", function (data: any) {
+    peers[data.host] = new Date().getTime();
+    console.log("found peer", data.host);
   });
-
-  // sw.on("connection-closed", (connection: any, info: any) => {
-  //   console.log("connection-closed", connection, info);
-  // });
-
-  // sw.on("leave", (channel: any) => {
-  //   console.log("leave", channel);
-  // });
-
-  // sw.on("close", () => {
-  //   console.log("close");
-  // });
-
-  // sw.on("candidates-updated", (channel: any, candidates: any) => {
-  //   console.log(
-  //     "candidates-updated",
-  //     channel.toString("hex"),
-  //     candidates.map((h: any) => h.toString("hex"))
-  //   );
-  // });
 
   // Setup Express
   app.get("/", (_req: any, res: any) => {
     res.json({ ok: true, msg: "You found the root!" });
+  });
+
+  app.get("/peers", (_req: any, res: any) => {
+    res.json({ peers });
   });
 
   const server = app.listen(PORT, () => {
