@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { customGun } from "tool-db";
+import { customGun, ToolDbClient } from "tool-db";
 import dotenv from "dotenv";
 import swarm from "discovery-swarm";
 
@@ -71,6 +71,7 @@ export default async function swarmStart() {
     console.log("Relay peer started on port " + PORT + "/gun");
   });
 
+  const toolDb = new ToolDbClient();
   customGun(Gun);
   Gun({ web: server, file: "data" });
 }
