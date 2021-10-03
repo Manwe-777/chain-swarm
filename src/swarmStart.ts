@@ -3,10 +3,11 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import { customGun, ToolDbClient } from "tool-db";
 import dotenv from "dotenv";
-import swarm from "discovery-swarm";
 
 import { PORT } from "./constants";
 import Gun from "gun";
+
+const DC = require("discovery-channel");
 
 dotenv.config();
 const app = express();
@@ -43,20 +44,8 @@ app.use(
 let peers: Record<string, number> = {};
 
 export default async function swarmStart() {
-  var sw = swarm();
-
-  sw.listen(4000);
-  sw.join("mtgatool-db-swarm"); // can be any id/name/hash
-
-  sw.on("connection", function (connection: any) {
-    peers[connection.remoteAddress] = new Date().getTime();
-    console.log("found + connected to peer", connection.remoteAddress);
-  });
-
-  sw.on("peer", function (data: any) {
-    peers[data.host] = new Date().getTime();
-    console.log("found peer", data.host);
-  });
+  var channel = DC();
+  channel.join("mtgatool-db-swarm", 4000, console.log);
 
   // Setup Express
   app.get("/", (_req: any, res: any) => {
@@ -72,6 +61,7 @@ export default async function swarmStart() {
   });
 
   const toolDb = new ToolDbClient();
+  toolDb.debug = true;
   customGun(Gun);
   Gun({ web: server, file: "data" });
 }
