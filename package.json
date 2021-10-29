@@ -46,7 +46,7 @@
     "hyperswarm": "^2.15.3",
     "hyperswarm-web": "^2.1.1",
     "pump": "^3.0.0",
-    "tool-db": "^1.0.21"
+    "tool-db": "../tool-chain"
   },
   "watch": {
     "build": {
