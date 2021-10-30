@@ -1,11 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { ToolDb } from "tool-db";
+import { getIpFromUrl, ToolDb } from "tool-db";
 import dotenv from "dotenv";
+import publicIp from "public-ip";
 
 import { PORT } from "./constants";
-import Gun from "gun";
 
 const DC = require("discovery-channel");
 
@@ -13,7 +13,6 @@ dotenv.config();
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(Gun.serve);
 
 var allowedOrigins = [
   "http://localhost:3000",
@@ -41,28 +40,39 @@ app.use(
   })
 );
 
-let peers: Record<string, number> = {};
-
 export default async function swarmStart() {
-  var channel = DC();
-  channel.join("mtgatool-db-swarm-v2", 4000, console.log);
+  publicIp.v4().then((currentIp) => {
+    console.log("Server peer IP: ", currentIp);
 
-  // Setup Express
-  app.get("/", (_req: any, res: any) => {
-    res.json({ ok: true, msg: "You found the root!" });
-  });
+    const toolDb = new ToolDb({
+      server: true,
+      port: PORT,
+      debug: true,
+    });
 
-  app.get("/peers", (_req: any, res: any) => {
-    res.json({ peers });
-  });
+    var channel = DC();
+    channel.join("mtgatool-db-swarm-v2", PORT);
 
-  const server = app.listen(80, () => {
-    console.log("Relay peer started on port " + 80);
-  });
+    channel.on("peer", (_id: any, peer: any) => {
+      if (currentIp !== peer.host) {
+        if (!toolDb.websockets.allPeers.includes(peer.host)) {
+          console.log(`Joining federated server at ${peer.host}:${peer.port}`);
+          toolDb.websockets.open(`http://${peer.host}:${peer.port}`);
+        }
+      }
+    });
 
-  const toolDb = new ToolDb({
-    server: true,
-    port: PORT,
-    debug: true,
+    // Setup Express
+    app.get("/", (_req: any, res: any) => {
+      res.json({ ok: true, msg: "You found the root!" });
+    });
+
+    app.get("/peers", (_req: any, res: any) => {
+      res.json({ peers: toolDb.websockets.activePeers.map(getIpFromUrl) });
+    });
+
+    const server = app.listen(80, () => {
+      console.log("Relay peer started on port " + 80);
+    });
   });
 }
