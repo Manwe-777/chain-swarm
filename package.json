@@ -40,7 +40,7 @@
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "public-ip": "^4.0.4",
-    "tool-db": "^1.1.0"
+    "tool-db": "^1.1.1"
   },
   "watch": {
     "build": {
