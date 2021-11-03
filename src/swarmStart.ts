@@ -68,7 +68,7 @@ export default async function swarmStart() {
     });
 
     app.get("/peers", (_req: any, res: any) => {
-      res.json({ peers: toolDb.websockets.activePeers.map(getIpFromUrl) });
+      res.json({ peers: toolDb.websockets.activePeers });
     });
 
     const server = app.listen(80, () => {
