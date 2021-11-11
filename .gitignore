@@ -4,3 +4,4 @@ dist
 level
 test
 tooldb
+ssl/**

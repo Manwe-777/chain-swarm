@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "watch": "npm-watch",
-    "start": "nodemon dist/index.js 8765",
+    "start": "nodemon dist/index.js 443",
     "start:test": "nodemon dist/index.js",
     "test": "eslint src/ && tsc",
     "build": "tsc",
@@ -39,8 +39,10 @@
     "discovery-swarm": "^6.1.0",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
+    "http": "^0.0.1-security",
+    "https": "^1.0.0",
     "public-ip": "^4.0.4",
-    "tool-db": "^1.1.3"
+    "tool-db": "^1.1.6"
   },
   "watch": {
     "build": {

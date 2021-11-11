@@ -1,13 +1,23 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { getIpFromUrl, ToolDb } from "tool-db";
+import { ToolDb } from "tool-db";
 import dotenv from "dotenv";
 import publicIp from "public-ip";
+import fs from "fs";
+import http from "http";
+import https from "https";
+
+// This is a bad solution but will help connecting to basically any peer
+(process as any).env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 import { PORT } from "./constants";
 
 const DC = require("discovery-channel");
+
+var privateKey = fs.readFileSync("ssl/server.key", "utf8");
+var certificate = fs.readFileSync("ssl/server.crt", "utf8");
+var credentials = { key: privateKey, cert: certificate };
 
 dotenv.config();
 const app = express();
@@ -40,26 +50,25 @@ app.use(
   })
 );
 
+const knownHosts: Record<string, string> = {
+  "66.97.46.144": "api.mtgatool.com",
+};
+
 export default async function swarmStart() {
   publicIp.v4().then((currentIp) => {
-    console.log("Server peer IP: ", currentIp);
+    console.log("Server IP: ", currentIp);
+    console.log("Server Port: ", PORT);
+
+    var httpServer = http.createServer(app);
+    var httpsServer = https.createServer(credentials, app);
+    httpServer.listen(80);
+    httpsServer.listen(443);
 
     const toolDb = new ToolDb({
+      // httpServer: httpsServer,
       server: true,
       port: PORT,
       debug: true,
-    });
-
-    var channel = DC();
-    channel.join("mtgatool-db-swarm-v2", PORT);
-
-    channel.on("peer", (_id: any, peer: any) => {
-      if (currentIp !== peer.host) {
-        if (!toolDb.websockets.allPeers.includes(peer.host)) {
-          console.log(`Joining federated server at ${peer.host}:${peer.port}`);
-          toolDb.websockets.open(`http://${peer.host}:${peer.port}`);
-        }
-      }
     });
 
     // Setup Express
@@ -71,8 +80,20 @@ export default async function swarmStart() {
       res.json({ peers: toolDb.websockets.activePeers });
     });
 
-    const server = app.listen(80, () => {
-      console.log("Relay peer started on port " + 80);
+    var channel = DC();
+    channel.join("mtgatool-db-swarm-v2", PORT);
+
+    channel.on("peer", (_id: any, peer: any) => {
+      if (currentIp !== peer.host) {
+        const finalHost = knownHosts[peer.host] ?? peer.host;
+        if (!toolDb.websockets.allPeers.includes(finalHost)) {
+          toolDb.websockets.open(
+            `http${peer.port === 443 ? "s" : ""}://${finalHost}:${
+              peer.port === 443 ? "" : peer.port
+            }`
+          );
+        }
+      }
     });
   });
 }
