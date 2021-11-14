@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "watch": "npm-watch",
-    "start": "nodemon dist/index.js 443",
+    "start": "nodemon dist/index.js 3000",
+    "start:ssl": "nodemon dist/index.js 443",
     "start:test": "nodemon dist/index.js",
     "test": "eslint src/ && tsc",
     "build": "tsc",
@@ -43,6 +44,9 @@
     "https": "^1.0.0",
     "public-ip": "^4.0.4",
     "tool-db": "^1.1.6"
+  },
+  "engines": {
+    "node": "15.x"
   },
   "watch": {
     "build": {
