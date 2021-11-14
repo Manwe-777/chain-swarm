@@ -4,8 +4,8 @@
   "description": "",
   "scripts": {
     "watch": "npm-watch",
-    "start": "node dist/index.js 3000",
-    "start:ssl": "nodemon dist/index.js 443",
+    "start": "node dist/index.js",
+    "start:ssl": "set PORT=443 && set USE_HTTP=true && nodemon dist/index.js",
     "start:test": "nodemon dist/index.js",
     "test": "eslint src/ && tsc",
     "build": "tsc",

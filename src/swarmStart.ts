@@ -11,7 +11,7 @@ import https from "https";
 // This is a bad solution but will help connecting to basically any peer
 (process as any).env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
-import { PORT } from "./constants";
+import { USE_HTTP, PORT } from "./constants";
 
 const DC = require("discovery-channel");
 
@@ -55,8 +55,10 @@ export default async function swarmStart() {
     console.log("Server IP: ", currentIp);
     console.log("Server Port: ", PORT);
 
-    var httpServer = http.createServer(app);
-    httpServer.listen(80);
+    if (USE_HTTP) {
+      const httpServer = http.createServer(app);
+      httpServer.listen(80);
+    }
     var httpsServer;
 
     if (PORT === 443) {
