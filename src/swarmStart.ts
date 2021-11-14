@@ -15,10 +15,6 @@ import { PORT } from "./constants";
 
 const DC = require("discovery-channel");
 
-var privateKey = fs.readFileSync("ssl/server.key", "utf8");
-var certificate = fs.readFileSync("ssl/server.crt", "utf8");
-var credentials = { key: privateKey, cert: certificate };
-
 dotenv.config();
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -60,12 +56,19 @@ export default async function swarmStart() {
     console.log("Server Port: ", PORT);
 
     var httpServer = http.createServer(app);
-    var httpsServer = https.createServer(credentials, app);
     httpServer.listen(80);
-    httpsServer.listen(443);
+    var httpsServer;
+
+    if (PORT === 443) {
+      var privateKey = fs.readFileSync("ssl/server.key", "utf8");
+      var certificate = fs.readFileSync("ssl/server.crt", "utf8");
+      var credentials = { key: privateKey, cert: certificate };
+      httpsServer = https.createServer(credentials, app);
+      httpsServer.listen(443);
+    }
 
     const toolDb = new ToolDb({
-      // httpServer: httpsServer,
+      httpServer: httpsServer,
       server: true,
       port: PORT,
       debug: true,
