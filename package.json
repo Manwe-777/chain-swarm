@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "watch": "npm-watch",
-    "start": "nodemon dist/index.js 3000",
+    "start": "node dist/index.js 3000",
     "start:ssl": "nodemon dist/index.js 443",
     "start:test": "nodemon dist/index.js",
     "test": "eslint src/ && tsc",
