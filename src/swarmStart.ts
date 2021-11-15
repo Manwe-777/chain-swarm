@@ -11,7 +11,7 @@ import https from "https";
 // This is a bad solution but will help connecting to basically any peer
 (process as any).env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
-import { USE_HTTP, PORT } from "./constants";
+import { USE_DHT, USE_HTTP, PORT } from "./constants";
 
 const DC = require("discovery-channel");
 
@@ -86,7 +86,11 @@ export default async function swarmStart() {
     });
 
     var channel = DC();
-    channel.join("mtgatool-db-swarm-v2", PORT);
+    if (USE_DHT) {
+      channel.join("mtgatool-db-swarm-v2", PORT);
+    } else {
+      channel.join("mtgatool-db-swarm-v2");
+    }
 
     channel.on("peer", (_id: any, peer: any) => {
       if (currentIp !== peer.host) {
