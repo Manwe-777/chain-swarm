@@ -56,11 +56,13 @@ export default async function swarmStart() {
     console.log("Server IP: ", currentIp);
     console.log("Server Port: ", PORT);
 
+    var httpServer;
+    var httpsServer;
+
     if (USE_HTTP) {
-      const httpServer = http.createServer(app);
+      httpServer = http.createServer(app);
       httpServer.listen(80);
     }
-    var httpsServer;
 
     if (PORT === 443) {
       var privateKey = fs.readFileSync("ssl/server.key", "utf8");
@@ -70,12 +72,21 @@ export default async function swarmStart() {
       httpsServer.listen(443);
     }
 
-    const toolDb = new ToolDb({
-      httpServer: httpsServer,
-      server: true,
-      port: PORT,
-      debug: true,
-    });
+    const toolDb = new ToolDb(
+      httpsServer
+        ? {
+            httpServer: httpsServer,
+            server: true,
+            port: undefined,
+            debug: true,
+          }
+        : {
+            httpServer: undefined,
+            server: true,
+            port: PORT,
+            debug: true,
+          }
+    );
 
     // Setup Express
     app.get("/", (_req: any, res: any) => {
