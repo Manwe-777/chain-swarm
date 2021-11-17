@@ -52,6 +52,7 @@ const knownHosts: Record<string, string> = {
 
 export default async function swarmStart() {
   publicIp.v4().then((currentIp) => {
+    console.log(new Date().toUTCString());
     console.log("Server IP: ", currentIp);
     console.log("Server Port: ", PORT);
 
