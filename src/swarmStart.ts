@@ -1,14 +1,19 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { sha256, ToolDb } from "tool-db";
+import { ToolDb } from "tool-db";
 import dotenv from "dotenv";
 import publicIp from "public-ip";
 import fs from "fs";
 import http from "http";
 import https from "https";
 
-import DHT from "@hyperswarm/dht";
+import Libp2p from "libp2p";
+import Websockets from "libp2p-websockets";
+import WebRTCStar from "libp2p-webrtc-star";
+import { NOISE } from "libp2p-noise";
+import Mplex from "libp2p-mplex";
+import Bootstrap from "libp2p-bootstrap";
 
 dotenv.config();
 
@@ -16,8 +21,6 @@ dotenv.config();
 (process as any).env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 import { USE_DHT, USE_HTTP, PORT } from "./constants";
-
-const DC = require("discovery-channel");
 
 dotenv.config();
 const app = express();
@@ -59,45 +62,57 @@ export default async function swarmStart() {
   console.log("USE_HTTP ", USE_HTTP);
   console.log("PORT ", PORT);
 
-  const node = new DHT({ ephemeral: true, bootstrap: [] });
-
-  await node.ready();
-
-  const topic = sha256(process.env.SWARM_KEY || "topic-db-key");
-
-  // announce a port
-  node.announce(topic, { port: PORT }, function (err: any) {
-    if (err) {
-      console.log(err);
-    } else {
-      // try and find it
-      node
-        .lookup(topic)
-        .on("data", console.log)
-        .on("end", function () {
-          // unannounce it and shutdown
-          node.unannounce(topic, { port: PORT }, function () {
-            node.destroy();
-            process.exit(1);
-          });
-        });
-    }
+  const libp2p = await Libp2p.create({
+    addresses: {
+      // Add the signaling server address, along with our PeerId to our multiaddrs list
+      // libp2p will automatically attempt to dial to the signaling server so that it can
+      // receive inbound connections from other peers
+      listen: [
+        "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+        "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
+      ],
+    },
+    modules: {
+      transport: [Websockets, WebRTCStar],
+      connEncryption: [NOISE],
+      streamMuxer: [Mplex],
+      peerDiscovery: [Bootstrap],
+    },
+    config: {
+      peerDiscovery: {
+        // The `tag` property will be searched when creating the instance of your Peer Discovery service.
+        // The associated object, will be passed to the service when it is instantiated.
+        [Bootstrap.tag]: {
+          enabled: true,
+          list: [
+            "/dns4/ams-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
+            "/dns4/lon-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3",
+            "/dns4/sfo-3.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
+            "/dns4/sgp-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
+            "/dns4/nyc-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm",
+            "/dns4/nyc-2.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
+          ],
+        },
+      },
+    },
   });
 
-  const peers = new Set();
+  // Listen for new peers
+  libp2p.on("peer:discovery", (peerId) => {
+    console.log(`Found peer ${peerId.toB58String()}`);
+  });
 
-  node
-    .lookup(topic)
-    .on("data", (hit: any) => {
-      for (let peer of hit.peers) {
-        peers.add(`${peer.host}:${peer.port}`);
-      }
-    })
-    .on("error", console.log)
-    .on("end", function () {
-      console.log("Lookup end;");
-      console.log(peers);
-    });
+  // Listen for new connections to peers
+  libp2p.connectionManager.on("peer:connect", (connection) => {
+    console.log(`Connected to ${connection.remotePeer.toB58String()}`);
+  });
+
+  // Listen for peers disconnecting
+  libp2p.connectionManager.on("peer:disconnect", (connection) => {
+    console.log(`Disconnected from ${connection.remotePeer.toB58String()}`);
+  });
+
+  await libp2p.start();
 
   ////////
   publicIp.v4().then((currentIp) => {

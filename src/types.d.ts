@@ -1,2 +1,3 @@
-declare module "@hyperswarm/dht";
-declare module "hypercore-crypto";
+declare module "libp2p-websockets";
+declare module "libp2p-webrtc-star";
+declare module "libp2p-mplex";
