@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { ToolDb } from "tool-db";
+import { sha256, ToolDb } from "tool-db";
 import dotenv from "dotenv";
 import publicIp from "public-ip";
 import fs from "fs";
@@ -63,7 +63,7 @@ export default async function swarmStart() {
 
   await node.ready();
 
-  const topic = Buffer.from(process.env.SWARM_KEY || "db-test-topic", "hex");
+  const topic = sha256(process.env.SWARM_KEY || "topic-db-key");
 
   // announce a port
   node.announce(topic, { port: PORT }, function (err: any) {
@@ -83,6 +83,21 @@ export default async function swarmStart() {
         });
     }
   });
+
+  const peers = new Set();
+
+  node
+    .lookup(topic)
+    .on("data", (hit: any) => {
+      for (let peer of hit.peers) {
+        peers.add(`${peer.host}:${peer.port}`);
+      }
+    })
+    .on("error", console.log)
+    .on("end", function () {
+      console.log("Lookup end;");
+      console.log(peers);
+    });
 
   ////////
   publicIp.v4().then((currentIp) => {
