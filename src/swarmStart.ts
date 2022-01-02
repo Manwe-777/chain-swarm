@@ -8,6 +8,8 @@ import fs from "fs";
 import http from "http";
 import https from "https";
 
+dotenv.config();
+
 // This is a bad solution but will help connecting to basically any peer
 (process as any).env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
@@ -51,10 +53,12 @@ const knownHosts: Record<string, string> = {
 };
 
 export default async function swarmStart() {
+  console.log("USE_DHT ", USE_DHT);
+  console.log("USE_HTTP ", USE_HTTP);
+  console.log("PORT ", PORT);
   publicIp.v4().then((currentIp) => {
     console.log(new Date().toUTCString());
     console.log("Server IP: ", currentIp);
-    console.log("Server Port: ", PORT);
 
     var httpServer;
     var httpsServer;
@@ -99,12 +103,13 @@ export default async function swarmStart() {
 
     var channel = DC();
     if (USE_DHT) {
-      channel.join("mtgatool-db-swarm-v2", PORT);
+      channel.join(process.env.SWARM_KEY, PORT);
     } else {
-      channel.join("mtgatool-db-swarm-v2");
+      channel.join(process.env.SWARM_KEY);
     }
 
     channel.on("peer", (_id: any, peer: any) => {
+      console.log("DHT Peer ", peer.host, peer.port);
       if (currentIp !== peer.host) {
         const finalHost = knownHosts[peer.host] ?? peer.host;
         if (!toolDb.websockets.allPeers.includes(finalHost)) {
