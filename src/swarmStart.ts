@@ -10,7 +10,6 @@ import https from "https";
 
 import Libp2p from "libp2p";
 import Websockets from "libp2p-websockets";
-import WebRTCStar from "libp2p-webrtc-star";
 import { NOISE } from "libp2p-noise";
 import Mplex from "libp2p-mplex";
 import Bootstrap from "libp2p-bootstrap";
@@ -73,7 +72,7 @@ export default async function swarmStart() {
       ],
     },
     modules: {
-      transport: [Websockets, WebRTCStar],
+      transport: [Websockets],
       connEncryption: [NOISE],
       streamMuxer: [Mplex],
       peerDiscovery: [Bootstrap],
