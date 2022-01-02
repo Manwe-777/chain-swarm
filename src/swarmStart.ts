@@ -103,6 +103,7 @@ export default async function swarmStart() {
 
     var channel = DC();
     if (USE_DHT) {
+      console.log("Joining ", process.env.SWARM_KEY);
       channel.join(process.env.SWARM_KEY, PORT);
     } else {
       channel.join(process.env.SWARM_KEY);
