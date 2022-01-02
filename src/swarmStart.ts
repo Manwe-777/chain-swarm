@@ -8,6 +8,8 @@ import fs from "fs";
 import http from "http";
 import https from "https";
 
+import DHT from "@hyperswarm/dht";
+
 dotenv.config();
 
 // This is a bad solution but will help connecting to basically any peer
@@ -56,6 +58,33 @@ export default async function swarmStart() {
   console.log("USE_DHT ", USE_DHT);
   console.log("USE_HTTP ", USE_HTTP);
   console.log("PORT ", PORT);
+
+  const node = new DHT({ ephemeral: true, bootstrap: [] });
+
+  await node.ready();
+
+  const topic = Buffer.from(process.env.SWARM_KEY || "db-test-topic", "hex");
+
+  // announce a port
+  node.announce(topic, { port: PORT }, function (err: any) {
+    if (err) {
+      console.log(err);
+    } else {
+      // try and find it
+      node
+        .lookup(topic)
+        .on("data", console.log)
+        .on("end", function () {
+          // unannounce it and shutdown
+          node.unannounce(topic, { port: PORT }, function () {
+            node.destroy();
+            process.exit(1);
+          });
+        });
+    }
+  });
+
+  ////////
   publicIp.v4().then((currentIp) => {
     console.log(new Date().toUTCString());
     console.log("Server IP: ", currentIp);
@@ -101,11 +130,13 @@ export default async function swarmStart() {
       res.json({ peers: toolDb.websockets.activePeers });
     });
 
+    /*
     var channel = DC();
     if (USE_DHT) {
-      console.log("Joining ", process.env.SWARM_KEY);
+      console.log("Joining dht", process.env.SWARM_KEY);
       channel.join(process.env.SWARM_KEY, PORT);
     } else {
+      console.log("Listening dht", process.env.SWARM_KEY);
       channel.join(process.env.SWARM_KEY);
     }
 
@@ -122,5 +153,6 @@ export default async function swarmStart() {
         }
       }
     });
+    */
   });
 }
