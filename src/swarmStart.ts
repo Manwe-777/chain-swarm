@@ -13,6 +13,7 @@ import Websockets from "libp2p-websockets";
 import { NOISE } from "libp2p-noise";
 import Mplex from "libp2p-mplex";
 import Bootstrap from "libp2p-bootstrap";
+import DHT from "libp2p-kad-dht";
 
 dotenv.config();
 
@@ -66,31 +67,31 @@ export default async function swarmStart() {
       // Add the signaling server address, along with our PeerId to our multiaddrs list
       // libp2p will automatically attempt to dial to the signaling server so that it can
       // receive inbound connections from other peers
-      listen: [
-        "/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
-        "/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star",
-      ],
+      listen: [],
     },
     modules: {
       transport: [Websockets],
-      connEncryption: [NOISE],
       streamMuxer: [Mplex],
+      connEncryption: [NOISE],
       peerDiscovery: [Bootstrap],
+      dht: DHT,
     },
     config: {
       peerDiscovery: {
-        // The `tag` property will be searched when creating the instance of your Peer Discovery service.
-        // The associated object, will be passed to the service when it is instantiated.
-        [Bootstrap.tag]: {
-          enabled: true,
+        bootstrap: {
           list: [
-            "/dns4/ams-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",
-            "/dns4/lon-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLMeWqB7YGVLJN3pNLQpmmEk35v6wYtsMGLzSr5QBU3",
-            "/dns4/sfo-3.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",
-            "/dns4/sgp-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",
-            "/dns4/nyc-1.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLueR4xBeUbY9WZ9xGUUxunbKWcrNFTDAadQJmocnWm",
-            "/dns4/nyc-2.bootstrap.libp2p.io/tcp/443/wss/p2p/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",
+            "/dns4/haciendas.chat.ddataa.org/tcp/443/wss/p2p-webrtc-star/p2p/QmWjz6xb8v9K4KnYEwP5Yk75k5mMBCehzWFLCvvQpYxF3d",
           ],
+        },
+      },
+      dht: {
+        // The DHT options (and defaults) can be found in its documentation
+        kBucketSize: 20,
+        enabled: true,
+        randomWalk: {
+          enabled: true, // Allows to disable discovery (enabled by default)
+          interval: 300e3,
+          timeout: 10e3,
         },
       },
     },
