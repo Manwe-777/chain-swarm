@@ -102,7 +102,7 @@ export default async function swarmStart() {
     });
 
     app.get("/clients", (_req: any, res: any) => {
-      res.json({ clients: Object.values(toolDb.websockets.clientSockets) });
+      res.json({ clients: Object.keys(toolDb.websockets.clientSockets) });
     });
 
     var channel = DC();
