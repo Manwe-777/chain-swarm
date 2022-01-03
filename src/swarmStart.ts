@@ -101,6 +101,10 @@ export default async function swarmStart() {
       res.json({ peers: toolDb.websockets.activePeers });
     });
 
+    app.get("/clients", (_req: any, res: any) => {
+      res.json({ clients: Object.values(toolDb.websockets.clientSockets) });
+    });
+
     var channel = DC();
     if (USE_DHT) {
       console.log("Joining ", process.env.SWARM_KEY);
