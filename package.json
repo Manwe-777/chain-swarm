@@ -43,7 +43,7 @@
     "http": "^0.0.1-security",
     "https": "^1.0.0",
     "public-ip": "^4.0.4",
-    "tool-db": "github:Manwe-777/tool-db"
+    "tool-db": "^1.3.0"
   },
   "engines": {
     "node": "15.x"
