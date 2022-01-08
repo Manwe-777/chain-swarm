@@ -76,14 +76,24 @@ export default async function swarmStart() {
       httpsServer.listen(443);
     }
 
-    const toolDb = new ToolDb({
-      httpServer: httpsServer,
-      server: true,
-      debug: true,
-      topic: process.env.SWARM_KEY,
-      host: currentIp,
-      port: PORT,
-    });
+    const toolDb = new ToolDb(
+      httpsServer
+        ? {
+            httpServer: httpsServer,
+            server: true,
+            debug: true,
+            topic: process.env.SWARM_KEY,
+            host: currentIp,
+          }
+        : {
+            httpServer: httpsServer,
+            server: true,
+            debug: true,
+            topic: process.env.SWARM_KEY,
+            host: currentIp,
+            port: PORT,
+          }
+    );
 
     // Setup Express
     app.get("/", (_req: any, res: any) => {
