@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { ToolDb } from "tool-db";
+import { ToolDb, toolDbNetwork } from "tool-db";
 import dotenv from "dotenv";
 import publicIp from "public-ip";
 import fs from "fs";
@@ -76,21 +76,14 @@ export default async function swarmStart() {
       httpsServer.listen(443);
     }
 
-    const toolDb = new ToolDb(
-      httpsServer
-        ? {
-            httpServer: httpsServer,
-            server: true,
-            port: undefined,
-            debug: true,
-          }
-        : {
-            httpServer: undefined,
-            server: true,
-            port: PORT,
-            debug: true,
-          }
-    );
+    const toolDb = new ToolDb({
+      httpServer: httpsServer,
+      server: true,
+      debug: true,
+      topic: process.env.SWARM_KEY,
+      host: currentIp,
+      port: PORT,
+    });
 
     // Setup Express
     app.get("/", (_req: any, res: any) => {
@@ -98,11 +91,11 @@ export default async function swarmStart() {
     });
 
     app.get("/peers", (_req: any, res: any) => {
-      res.json({ peers: toolDb.websockets.activePeers });
+      res.json({ peers: toolDb.peers });
     });
 
     app.get("/clients", (_req: any, res: any) => {
-      res.json({ clients: Object.keys(toolDb.websockets.clientSockets) });
+      res.json({ clients: Object.keys((toolDb.network as any).clientSockets) });
     });
 
     app.get("/id", (_req: any, res: any) => {
@@ -117,17 +110,23 @@ export default async function swarmStart() {
       channel.join(process.env.SWARM_KEY);
     }
 
+    const checkedPeers: string[] = [];
+
     channel.on("peer", (_id: any, peer: any) => {
-      console.log("DHT Peer ", peer.host, peer.port);
-      if (currentIp !== peer.host) {
-        const finalHost = knownHosts[peer.host] ?? peer.host;
-        if (!toolDb.websockets.allPeers.includes(finalHost)) {
-          toolDb.websockets.open(
-            `http${peer.port === 443 ? "s" : ""}://${finalHost}:${
-              peer.port === 443 ? "" : peer.port
-            }`
-          );
+      if (!checkedPeers.includes(peer.host + ":" + peer.port)) {
+        console.log("DHT Peer ", peer.host, peer.port);
+        if (currentIp !== peer.host) {
+          const finalHost = knownHosts[peer.host] ?? peer.host;
+          if (
+            toolDb.peers.findIndex(
+              (p) => p.host === peer.host && p.port === peer.port
+            ) === -1 &&
+            toolDb.peers.filter((p) => p.host === finalHost).length === 0
+          ) {
+            (toolDb.network as toolDbNetwork).connectTo(peer.host, peer.port);
+          }
         }
+        checkedPeers.push(peer.host + ":" + peer.port);
       }
     });
   });
