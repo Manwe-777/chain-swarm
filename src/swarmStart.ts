@@ -84,6 +84,7 @@ export default async function swarmStart() {
             debug: true,
             topic: process.env.SWARM_KEY,
             host: currentIp,
+            port: undefined,
           }
         : {
             httpServer: httpsServer,
