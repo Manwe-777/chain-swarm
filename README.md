@@ -1,7 +1,6 @@
-# chain-swarm
+# Tool Db server
 
-An express server to join a swarm of tool-db instances.
-
+An express server to join a swarm of tool-db instances, can optionally be used to host a webrtc static peer.
 
 ToolDb Requires nodejs 15+
 
@@ -19,7 +18,6 @@ To start the server you can use the default command:
 
 ```npm run start```
 
-To set your own port set the env variable:
+You can edit the .env to change the swarm topic or use different ports.
 
-```set PORT=9000 && nodemon dist/index.js```
 

@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
-import { ToolDb, toolDbNetwork } from "tool-db";
+import { ToolDb, ToolDbNetwork } from "mtgatool-db";
 import dotenv from "dotenv";
 import publicIp from "public-ip";
 import fs from "fs";
@@ -13,7 +13,8 @@ dotenv.config();
 // This is a bad solution but will help connecting to basically any peer
 (process as any).env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
-import { USE_DHT, USE_HTTP, PORT } from "./constants";
+import { USE_DHT, USE_HTTP, PORT, SWARM_KEY } from "./constants";
+import expressSetup from "./expressSetup";
 
 const DC = require("discovery-channel");
 
@@ -22,11 +23,7 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-var allowedOrigins = [
-  "http://localhost:3000",
-  "http://localhost:3006",
-  "http://mtgatool.com/",
-];
+var allowedOrigins = ["http://localhost:3000", "http://localhost:3006"];
 
 app.use(
   cors({
@@ -47,10 +44,6 @@ app.use(
     },
   })
 );
-
-const knownHosts: Record<string, string> = {
-  "66.97.46.144": "api.mtgatool.com",
-};
 
 export default async function swarmStart() {
   console.log("USE_DHT ", USE_DHT);
@@ -80,45 +73,38 @@ export default async function swarmStart() {
       httpsServer
         ? {
             httpServer: httpsServer,
+            useWebrtc: false,
+            serveSocket: true,
             server: true,
             debug: true,
-            topic: process.env.SWARM_KEY,
+            topic: SWARM_KEY,
             host: currentIp,
             port: undefined,
           }
         : {
             httpServer: httpsServer,
+            useWebrtc: false,
+            serveSocket: true,
             server: true,
             debug: true,
-            topic: process.env.SWARM_KEY,
+            topic: SWARM_KEY,
             host: currentIp,
             port: PORT,
           }
     );
 
+    // You should be able to provide your own server user or keys!
+    toolDb.anonSignIn();
+
     // Setup Express
-    app.get("/", (_req: any, res: any) => {
-      res.json({ ok: true, msg: "You found the root!" });
-    });
-
-    app.get("/peers", (_req: any, res: any) => {
-      res.json({ peers: toolDb.peers });
-    });
-
-    app.get("/clients", (_req: any, res: any) => {
-      res.json({ clients: Object.keys((toolDb.network as any).clientSockets) });
-    });
-
-    app.get("/id", (_req: any, res: any) => {
-      res.json({ id: toolDb.options.id });
-    });
+    expressSetup(app, toolDb);
 
     var channel = DC();
     if (USE_DHT) {
-      console.log("Joining ", process.env.SWARM_KEY);
-      channel.join(process.env.SWARM_KEY, PORT);
+      console.log("Joining swarm " + SWARM_KEY);
+      channel.join(SWARM_KEY, PORT);
     } else {
-      channel.join(process.env.SWARM_KEY);
+      channel.join(SWARM_KEY);
     }
 
     const checkedPeers: string[] = [];
@@ -127,14 +113,12 @@ export default async function swarmStart() {
       if (!checkedPeers.includes(peer.host + ":" + peer.port)) {
         console.log("DHT Peer ", peer.host, peer.port);
         if (currentIp !== peer.host) {
-          const finalHost = knownHosts[peer.host] ?? peer.host;
+          // If this peer is not on our connected list yet
           if (
-            toolDb.peers.findIndex(
-              (p) => p.host === peer.host && p.port === peer.port
-            ) === -1 &&
-            toolDb.peers.filter((p) => p.host === finalHost).length === 0
+            Object.values(toolDb.peers).filter((p) => p.host === peer.host)
+              .length === 0
           ) {
-            (toolDb.network as toolDbNetwork).connectTo(peer.host, peer.port);
+            (toolDb.network as ToolDbNetwork).connectTo(peer.host, peer.port);
           }
         }
         checkedPeers.push(peer.host + ":" + peer.port);

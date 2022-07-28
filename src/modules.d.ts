@@ -1,2 +1,2 @@
-declare module "gun";
 declare module "discovery-swarm";
+declare module "wrtc";

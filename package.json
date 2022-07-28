@@ -43,7 +43,7 @@
     "http": "^0.0.1-security",
     "https": "^1.0.0",
     "public-ip": "^4.0.4",
-    "tool-db": "^1.4.2"
+    "mtgatool-db": "https://github.com/Manwe-777/mtgatool-db.git"
   },
   "engines": {
     "node": "15.x"
