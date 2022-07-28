@@ -31,8 +31,8 @@
     "npm-watch": "^0.11.0",
     "prettier": "^2.3.2",
     "rimraf": "^3.0.2",
-    "typescript": "^4.4.2",
-    "tsc": "^2.0.4"
+    "tsc": "^2.0.4",
+    "typescript": "^4.4.2"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
@@ -43,7 +43,7 @@
     "express": "^4.17.1",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
-    "mtgatool-db": "https://github.com/Manwe-777/mtgatool-db.git",
+    "mtgatool-db": "^1.6.0",
     "public-ip": "^4.0.4"
   },
   "engines": {
