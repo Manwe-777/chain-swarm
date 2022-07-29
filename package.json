@@ -42,7 +42,7 @@
     "express": "^4.17.1",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
-    "mtgatool-db": "^1.6.0",
+    "mtgatool-db": "^1.6.1",
     "public-ip": "^4.0.4"
   },
   "engines": {
