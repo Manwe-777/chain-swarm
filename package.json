@@ -11,6 +11,7 @@
     "build": "tsc",
     "build:full": "npm run clean && npm run build",
     "build:start": "npm run build && npm run start",
+    "gen-key": "npm run build && node dist/generateKeyPair.js",
     "clean": "rimraf dist",
     "eslint": "eslint src/",
     "eslint:fix": "eslint src/ --fix",
@@ -42,7 +43,7 @@
     "express": "^4.17.1",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
-    "mtgatool-db": "^1.6.1",
+    "mtgatool-db": "^2.0.0",
     "public-ip": "^4.0.4"
   },
   "engines": {

@@ -11,8 +11,8 @@ export default function expressSetup(app: Express, db: ToolDb) {
     res.json({ peers: Object.keys(db.network.clientToSend) });
   });
 
-  app.get("/id", (_req: any, res: any) => {
-    res.json({ id: db.network.getClientAddress() });
+  app.get("/pubkey", (_req: any, res: any) => {
+    res.json({ pubkey: db.getPubKey() });
   });
 
   app.get("/api/:id", (_req, res: any) => {
