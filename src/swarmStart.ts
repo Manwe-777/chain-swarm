@@ -141,9 +141,7 @@ export default async function swarmStart() {
               module = https;
             }
             module.get(
-              `http${peer.port === 443 ? "s" : ""}://${peer.host}:${
-                peer.port
-              }/pubkey`,
+              `http${peer.port === 443 ? "s" : ""}://${peer.host}/pubkey`,
               (res) => {
                 res.on("data", (d) => {
                   try {
