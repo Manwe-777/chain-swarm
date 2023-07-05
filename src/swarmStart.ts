@@ -116,6 +116,41 @@ export default async function swarmStart() {
         console.log("Public Key: ", id);
       });
 
+      // Gets the latest ranks from the latest month only
+      // This function is meant to speed up the home page loading.
+      // It should probably be cached here so we avoid repeated store queries here.
+      toolDb.addServerFunction("getLatestRanks", () => {
+        const date = new Date();
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+
+        return new Promise<string>((resolve, reject) => {
+          toolDb.store
+            .query("rank-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE")
+            .then((keys) => {
+              if (keys.length === 0) resolve(JSON.stringify([]));
+              else {
+                const ranks: any = [];
+                let count = 0;
+                keys.forEach((key) => {
+                  toolDb.store.get(key, (err, value) => {
+                    if (value) ranks.push(value);
+                    count++;
+
+                    if (count === keys.length) {
+                      // it should also filter the best ones on each ladder
+                      // though that is more typescript-sensitive
+                      const filtered = ranks.filter(
+                        (rank: any) => rank.updated > firstDay.getTime()
+                      );
+                      resolve(JSON.stringify(filtered));
+                    }
+                  });
+                });
+              }
+            });
+        });
+      });
+
       // You should be able to provide your own server user or keys!
       toolDb.anonSignIn();
 
