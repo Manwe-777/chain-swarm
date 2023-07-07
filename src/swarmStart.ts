@@ -131,11 +131,19 @@ export default async function swarmStart() {
               else {
                 const ranks: any = [];
                 let count = 0;
-                keys.forEach((key) => {
+                keys.forEach((key, index) => {
                   toolDb.store.get(key, (err, value) => {
-                    if (value) ranks.push(value);
-                    count++;
+                    if (!value) return;
 
+                    let parsed = undefined;
+                    try {
+                      parsed = JSON.parse(value);
+                    } catch (e) {
+                      return;
+                    }
+
+                    count++;
+                    ranks.push(parsed.v);
                     if (count === keys.length) {
                       // it should also filter the best ones on each ladder
                       // though that is more typescript-sensitive
