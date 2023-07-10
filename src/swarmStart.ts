@@ -22,7 +22,9 @@ import {
   DEBUG,
 } from "./constants";
 import expressSetup from "./expressSetup";
+import redisStore from "./redisStore";
 
+const redis = require("redis");
 const DC = require("discovery-channel");
 
 dotenv.config();
@@ -58,8 +60,12 @@ export default async function swarmStart() {
   console.log("SERVER NAME: ", SERVER_NAME);
   console.log("USE_DHT ", USE_DHT);
   console.log("USE_HTTP ", USE_HTTP);
+
+  const redisClient = redis.createClient();
+  await redisClient.connect();
+
   publicIp.v4().then((currentIp) => {
-    loadKeysComb(keys).then((defaultKeys) => {
+    loadKeysComb(keys).then(async (defaultKeys) => {
       if (defaultKeys === undefined) {
         console.log("Failed to load keys");
         return;
@@ -97,6 +103,7 @@ export default async function swarmStart() {
               host: currentIp,
               port: undefined,
               defaultKeys: defaultKeys.signKeys,
+              storageAdapter: redisStore,
             }
           : {
               httpServer: httpsServer,
@@ -108,6 +115,7 @@ export default async function swarmStart() {
               host: currentIp,
               port: PORT,
               defaultKeys: defaultKeys.signKeys,
+              storageAdapter: redisStore,
             }
       );
 
@@ -131,7 +139,7 @@ export default async function swarmStart() {
               else {
                 const ranks: any = [];
                 let count = 0;
-                keys.forEach((key, index) => {
+                keys.forEach((key) => {
                   toolDb.store.get(key, (err, value) => {
                     if (!value) return;
 
@@ -150,7 +158,7 @@ export default async function swarmStart() {
                       const filtered = ranks.filter(
                         (rank: any) => rank.updated > firstDay.getTime()
                       );
-                      resolve(JSON.stringify(filtered));
+                      resolve(filtered);
                     }
                   });
                 });
