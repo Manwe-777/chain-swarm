@@ -22,7 +22,6 @@ import {
   DEBUG,
 } from "./constants";
 import expressSetup from "./expressSetup";
-import redisStore from "./redisStore";
 
 const DC = require("discovery-channel");
 
@@ -99,7 +98,6 @@ export default async function swarmStart() {
               host: currentIp,
               port: undefined,
               defaultKeys: defaultKeys.signKeys,
-              storageAdapter: redisStore,
             }
           : {
               httpServer: httpsServer,
@@ -111,7 +109,6 @@ export default async function swarmStart() {
               host: currentIp,
               port: PORT,
               defaultKeys: defaultKeys.signKeys,
-              storageAdapter: redisStore,
             }
       );
 
