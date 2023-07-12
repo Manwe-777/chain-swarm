@@ -24,7 +24,6 @@ import {
 import expressSetup from "./expressSetup";
 import redisStore from "./redisStore";
 
-const redis = require("redis");
 const DC = require("discovery-channel");
 
 dotenv.config();
@@ -60,9 +59,6 @@ export default async function swarmStart() {
   console.log("SERVER NAME: ", SERVER_NAME);
   console.log("USE_DHT ", USE_DHT);
   console.log("USE_HTTP ", USE_HTTP);
-
-  const redisClient = redis.createClient();
-  await redisClient.connect();
 
   publicIp.v4().then((currentIp) => {
     loadKeysComb(keys).then(async (defaultKeys) => {
