@@ -184,21 +184,27 @@ export default async function swarmStart() {
             if (peer.port === 443) {
               module = https;
             }
-            module.get(
-              `http${peer.port === 443 ? "s" : ""}://${peer.host}/pubkey`,
-              (res) => {
-                res.on("data", (d) => {
-                  try {
-                    const data = JSON.parse(d.toString());
-                    if (data.pubkey) {
-                      (toolDb.network as ToolDbNetwork).connectTo(data.pubkey);
+            try {
+              module.get(
+                `http${peer.port === 443 ? "s" : ""}://${peer.host}/pubkey`,
+                (res) => {
+                  res.on("data", (d) => {
+                    try {
+                      const data = JSON.parse(d.toString());
+                      if (data.pubkey) {
+                        (toolDb.network as ToolDbNetwork).connectTo(
+                          data.pubkey
+                        );
+                      }
+                    } catch (e) {
+                      // couldnt parse pubkey
                     }
-                  } catch (e) {
-                    // couldnt parse pubkey
-                  }
-                });
-              }
-            );
+                  });
+                }
+              );
+            } catch (e) {
+              console.log("Failed to connect to peer ", peer.host);
+            }
           }
           checkedPeers.push(peer.host);
         }
