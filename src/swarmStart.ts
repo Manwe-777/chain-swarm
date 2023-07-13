@@ -1,5 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
+import axios from "axios";
 import cors from "cors";
 import { ToolDb, ToolDbNetwork, loadKeysComb } from "mtgatool-db";
 import dotenv from "dotenv";
@@ -180,34 +181,21 @@ export default async function swarmStart() {
         if (!checkedPeers.includes(peer.host)) {
           console.log("DHT Peer ", peer.host, peer.port);
           if (currentIp !== peer.host) {
-            let module: typeof http | typeof https = http;
-            if (peer.port === 443) {
-              module = https;
-            }
-            try {
-              module.get(
-                `http${peer.port === 443 ? "s" : ""}://${peer.host}/pubkey`,
-                (res) => {
-                  res.on("data", (d) => {
-                    try {
-                      const data = JSON.parse(d.toString());
-                      if (data.pubkey) {
-                        (toolDb.network as ToolDbNetwork).connectTo(
-                          data.pubkey
-                        );
-                      }
-                    } catch (e) {
-                      // couldnt parse pubkey
-                    }
-                  });
-                  res.on("error", () => {
-                    console.log("Failed to connect to peer ", peer.host);
-                  });
+            console.log("Checking peer ", peer.host);
+            axios
+              .get(`http${peer.port === 443 ? "s" : ""}://${peer.host}/pubkey`)
+              .then((resp) => {
+                console.log(peer.host + "/pubkey response; ", resp.data);
+
+                try {
+                  const data = JSON.parse(resp.data.toString());
+                  if (data.pubkey) {
+                    (toolDb.network as ToolDbNetwork).connectTo(data.pubkey);
+                  }
+                } catch (e) {
+                  // couldnt parse pubkey
                 }
-              );
-            } catch (e) {
-              console.log("Failed to connect to peer ", peer.host);
-            }
+              });
           }
           checkedPeers.push(peer.host);
         }
