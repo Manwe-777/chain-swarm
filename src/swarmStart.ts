@@ -200,6 +200,9 @@ export default async function swarmStart() {
                       // couldnt parse pubkey
                     }
                   });
+                  res.on("error", () => {
+                    console.log("Failed to connect to peer ", peer.host);
+                  });
                 }
               );
             } catch (e) {
