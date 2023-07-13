@@ -195,6 +195,9 @@ export default async function swarmStart() {
                 } catch (e) {
                   // couldnt parse pubkey
                 }
+              })
+              .catch((e) => {
+                console.log("Failed to get pubkey from peer ", peer.host);
               });
           }
           checkedPeers.push(peer.host);
