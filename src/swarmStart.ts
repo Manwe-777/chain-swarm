@@ -161,6 +161,54 @@ export default async function swarmStart() {
         });
       });
 
+      // Gets the latest 10 matches for this player using his pubkey
+      toolDb.addServerFunction<string, string>("getLatestMatches", (str) => {
+        const args = JSON.parse(str);
+        const { pubKey, items } = args;
+
+        return new Promise<string>((resolve, reject) => {
+          if (!pubKey) resolve(JSON.stringify([]));
+          else {
+            toolDb.store
+              .query(`:${pubKey}.matches-`)
+              .then((keys) => {
+                if (keys.length === 0) resolve(JSON.stringify([]));
+                else {
+                  const matches: any[] = [];
+                  let count = 0;
+                  keys.forEach((key) => {
+                    toolDb.store.get(key, (err, value) => {
+                      if (!value) return;
+
+                      let parsed = undefined;
+                      try {
+                        parsed = JSON.parse(value);
+                      } catch (e) {
+                        return;
+                      }
+
+                      count++;
+                      matches.push(parsed.v);
+                      if (count === keys.length) {
+                        // it should also filter the best ones on each ladder
+                        // though that is more typescript-sensitive
+                        const filtered = matches
+                          .filter((match) => match.timestamp)
+                          .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1))
+                          .slice(0, items || 10);
+                        resolve(filtered as any);
+                      }
+                    });
+                  });
+                }
+              })
+              .catch((e) => {
+                resolve(JSON.stringify([]));
+              });
+          }
+        });
+      });
+
       // You should be able to provide your own server user or keys!
       toolDb.anonSignIn();
 
