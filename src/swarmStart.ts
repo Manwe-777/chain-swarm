@@ -20,6 +20,7 @@ import {
   PORT,
   SWARM_KEY,
   SERVER_NAME,
+  SERVER_HOSTNAME,
   DEBUG,
 } from "./constants";
 import expressSetup from "./expressSetup";
@@ -57,6 +58,7 @@ app.use(
 
 export default async function swarmStart() {
   console.log("SERVER NAME: ", SERVER_NAME);
+  console.log("SERVER_HOSTNAME: ", SERVER_HOSTNAME);
   console.log("USE_DHT ", USE_DHT);
   console.log("USE_HTTP ", USE_HTTP);
 
@@ -96,7 +98,7 @@ export default async function swarmStart() {
               debug: DEBUG,
               topic: SWARM_KEY,
               serverName: SERVER_NAME,
-              host: currentIp,
+              host: SERVER_HOSTNAME || currentIp,
               port: undefined,
               defaultKeys: defaultKeys.signKeys,
             }
@@ -107,7 +109,7 @@ export default async function swarmStart() {
               debug: DEBUG,
               topic: SWARM_KEY,
               serverName: SERVER_NAME,
-              host: currentIp,
+              host: SERVER_HOSTNAME || currentIp,
               port: PORT,
               defaultKeys: defaultKeys.signKeys,
             }
@@ -220,10 +222,10 @@ export default async function swarmStart() {
         console.log("Joining swarm " + SWARM_KEY);
         channel.join(SWARM_KEY, PORT);
       } else {
-        channel.join(SWARM_KEY);
+        // channel.join(SWARM_KEY);
       }
 
-      const checkedPeers: string[] = [];
+      const checkedPeers: string[] = [currentIp];
 
       channel.on("peer", (_id: any, peer: any) => {
         if (!checkedPeers.includes(peer.host)) {
