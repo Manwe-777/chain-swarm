@@ -70,7 +70,7 @@ export default async function swarmStart() {
       }
 
       console.log(new Date().toUTCString());
-      console.log("Server IP: ", currentIp);
+      console.log("IP: ", currentIp);
       console.log("Port: ", PORT);
 
       var httpServer;
@@ -82,6 +82,16 @@ export default async function swarmStart() {
       }
 
       if (PORT === 443) {
+        if (
+          fs.statSync("ssl/server.key").isFile() === false ||
+          fs.statSync("ssl/server.crt").isFile() === false
+        ) {
+          console.log("ssl/server.key not found, aborting");
+          console.log(
+            "You need to provide a valid SSL certificate to run on port 443"
+          );
+          return;
+        }
         var privateKey = fs.readFileSync("ssl/server.key", "utf8");
         var certificate = fs.readFileSync("ssl/server.crt", "utf8");
         var credentials = { key: privateKey, cert: certificate };
@@ -151,9 +161,11 @@ export default async function swarmStart() {
                     if (count === keys.length) {
                       // it should also filter the best ones on each ladder
                       // though that is more typescript-sensitive
-                      const filtered = ranks.filter(
-                        (rank: any) => rank.updated > firstDay.getTime()
-                      );
+                      const filtered = ranks
+                        .filter((rank: any) => rank)
+                        .filter(
+                          (rank: any) => rank.updated > firstDay.getTime()
+                        );
                       resolve(filtered);
                     }
                   });
@@ -168,54 +180,66 @@ export default async function swarmStart() {
         items: number;
       }
 
+      const isPrivate = function (pubKey: string) {
+        return new Promise<boolean>((resolve, reject) => {
+          toolDb.store.get(`:${pubKey}.privateMode`, (err, isPrivate) => {
+            if (err) reject(err);
+            if (!isPrivate) resolve(false);
+            resolve(isPrivate === "true");
+          });
+        });
+      };
+
       // Gets the latest 10 matches for this player using his pubkey
       toolDb.addServerFunction<string, LatestMatchesArgs>(
         "getLatestMatches",
         (args) => {
           const { pubKey, items } = args;
 
-          return new Promise<string>((resolve, reject) => {
-            if (!pubKey) resolve(JSON.stringify([]));
-            else {
-              toolDb.store
-                .query(`:${pubKey}.matches-`)
-                .then((keys) => {
-                  if (keys.length === 0) resolve(JSON.stringify([]));
-                  else {
-                    const matches: any[] = [];
-                    let count = 0;
-                    keys.forEach((key) => {
-                      toolDb.store.get(key, (err, value) => {
-                        if (!value) return;
+          return isPrivate(pubKey).then((isPrivate) => {
+            return new Promise<string>((resolve) => {
+              if (!pubKey || isPrivate) resolve(JSON.stringify([]));
+              else {
+                toolDb.store
+                  .query(`:${pubKey}.matches-`)
+                  .then((keys) => {
+                    if (keys.length === 0) resolve(JSON.stringify([]));
+                    else {
+                      const matches: any[] = [];
+                      let count = 0;
+                      keys.forEach((key) => {
+                        toolDb.store.get(key, (err, value) => {
+                          if (!value) return;
 
-                        let parsed = undefined;
-                        try {
-                          parsed = JSON.parse(value);
-                        } catch (e) {
-                          return;
-                        }
+                          let parsed = undefined;
+                          try {
+                            parsed = JSON.parse(value);
+                          } catch (e) {
+                            return;
+                          }
 
-                        count++;
-                        matches.push(parsed.v);
-                        if (count === keys.length) {
-                          // it should also filter the best ones on each ladder
-                          // though that is more typescript-sensitive
-                          const filtered = matches
-                            .filter((match) => match.timestamp)
-                            .sort((a, b) =>
-                              a.timestamp > b.timestamp ? -1 : 1
-                            )
-                            .slice(0, items || 10);
-                          resolve(filtered as any);
-                        }
+                          count++;
+                          matches.push(parsed.v);
+                          if (count === keys.length) {
+                            // it should also filter the best ones on each ladder
+                            // though that is more typescript-sensitive
+                            const filtered = matches
+                              .filter((match) => match.timestamp)
+                              .sort((a, b) =>
+                                a.timestamp > b.timestamp ? -1 : 1
+                              )
+                              .slice(0, items || 10);
+                            resolve(filtered as any);
+                          }
+                        });
                       });
-                    });
-                  }
-                })
-                .catch((e) => {
-                  resolve(JSON.stringify([]));
-                });
-            }
+                    }
+                  })
+                  .catch((e) => {
+                    resolve(JSON.stringify([]));
+                  });
+              }
+            });
           });
         }
       );
