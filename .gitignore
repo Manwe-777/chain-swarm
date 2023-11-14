@@ -8,3 +8,4 @@ dist/**
 dist/**.js
 ssl/**
 keys.json
+.env
