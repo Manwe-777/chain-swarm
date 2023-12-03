@@ -183,7 +183,7 @@ export default async function swarmStart() {
       const isPrivate = function (pubKey: string) {
         return new Promise<boolean>((resolve, reject) => {
           toolDb.store.get(`:${pubKey}.privateMode`, (err, data) => {
-            if (err) reject(err);
+            if (err) resolve(false);
             if (!data) resolve(false);
             let json = undefined;
             try {
