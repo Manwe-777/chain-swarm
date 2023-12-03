@@ -185,8 +185,15 @@ export default async function swarmStart() {
           toolDb.store.get(`:${pubKey}.privateMode`, (err, data) => {
             if (err) reject(err);
             if (!data) resolve(false);
-            const json = JSON.parse(data as string);
-            resolve(json?.v === true);
+            let json = undefined;
+            try {
+              json = JSON.parse(data as string);
+            } catch (e) {
+              resolve(false);
+            }
+            if (json) {
+              resolve(json?.v === true);
+            }
           });
         });
       };
@@ -210,7 +217,7 @@ export default async function swarmStart() {
                       let count = 0;
                       keys.forEach((key) => {
                         toolDb.store.get(key, (err, value) => {
-                          if (!value) return;
+                          if (!value || err) return;
 
                           let parsed = undefined;
                           try {
